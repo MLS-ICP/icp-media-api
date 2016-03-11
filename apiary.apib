@@ -1,0 +1,91 @@
+FORMAT: 1A
+HOST: http://polls.apiblueprint.org/
+
+# icp-media-api
+
+This is an ICP API documentation for so called "Media app".
+This documentation was based on media app implemented in following repo: 
+* https://github.com/MLS-ICP/media_person
+
+## Uploading Resources [/uploads]
+
+### Upload Image or Video Resource [POST]
+
+For Fine Uploader support, specify Accept: *text/vnd.fineuploader+plain* or if you're using an iframe for the upload, add a post parameter *iframeRemote=true*
+
++ Request
+
+    + Headers
+        
+            Content-Type: multipart/form-data; boundary=---BOUNDARY
+            Accept: text/vnd.fineuploader+plain
+
+    + Attributes
+
+        + iframeRemote: true/false (boolean) - iframe support for upload
+
+    + Body
+
+            -----BOUNDARY
+            Content-Disposition: form-data; name="img"; filename="image.jpg"
+            Content-Type: image/jpeg
+            Content-Transfer-Encoding: base64
+    
+            /9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0a
+            HBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIy
+            MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIA
+            AhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEB
+            AAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AL+AD//Z
+            -----BOUNDARY
+
++ Response 201 (text/plain)
+
+    + Headers
+        
+            Location: http://test.com/image7198853861649760492.jpg
+
+## Converting Resources [/conversions]
+
+### Convert Image Resource [POST]
+
++ Request
+
+    + Headers
+        
+            Content-Type: x-www-form-urlencoded
+
+    + Attributes
+
+        + url: `http://test.com/image7198853861649760492.jpg` (string, required) - path to the image to convert
+        + command: `-crop,378.2456140350877x378.2456140350877+136.16842105263157+34.04210526315789` (string, required) - comma-separated command line flags to imagemagick convert
+
++ Response 201 (text/plain)
+
+    + Headers
+        
+            Location: http://test.com/image7198853861649760492232.jpg
+            
+## Compressing Resources [/compressions]
+
+### Compress Image or Video Resource [POST]
+
+The choice of targetFormat changes the behavior of this operation. Converting to jpeg happens synchronously, and returns HTTP 201. Compressing to other video types happens asynchronously with HTTP 202. This may take a while. Poll the created resource to know when it is complete. In either case the server will provide a *Location header* to the destination resource. When converting to jpeg you can set *Prefer* header to get a copy of the screenshot returned in the same HTTP response.
+
++ Request
+
+    + Headers
+        
+            Content-Type: x-www-form-urlencoded
+            Prefer: return=representation
+
+    + Attributes
+
+        + url: `http://test.com/video.mov` (string, required) - path to the video to compress
+        + targetFormat: `h264` (string, required) - one of "h264", "ogg" (or "jpeg" for screenshot)
+        + targetFilename: `video2.mov` (string) - force the output name, not recommended
+
++ Response 201 (text/plain)
+
+    + Headers
+        
+            Location: http://test.com/image7198853861649760492232.jpg
