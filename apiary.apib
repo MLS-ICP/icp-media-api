@@ -11,7 +11,13 @@ This documentation was based on media app implemented in following repo:
 
 ### Upload Image or Video Resource [POST]
 
-For Fine Uploader support, specify Accept: *text/vnd.fineuploader+plain* or if you're using an iframe for the upload, add a post parameter *iframeRemote=true*
+Endpoint used to upload file resources, mostly images and videos but will work for any file resource.
+Images can be uploaded:
+* with param *iframeRemote* (true/false) to support iframe uploader (JavaScript library for easy upload)
+* with additional header *Accept: text/vnd.fineuploader+plain* to support yet another JS uploader called FineUploader
+
+After upload is done, the response is returned and it contains header *Location* with url to the uploaded asset.
+Whenever one of above additional param/header is specified the response contains additionally a JSON object with more details.
 
 + Request
 
@@ -43,10 +49,27 @@ For Fine Uploader support, specify Accept: *text/vnd.fineuploader+plain* or if y
     + Headers
         
             Location: http://test.com/image7198853861649760492.jpg
+    
+    + Body
+            
+            {
+                "success" : true,
+                "location" : "http://test.com/image7198853861649760492.jpg",
+                "contentType" : "image/jpeg"
+            }
+
 
 ## Converting Resources [/conversions]
 
 ### Convert Image Resource [POST]
+
+Conversion is used to manipulate images, like cropping and resizing them. 
+Internally, the endpoint is using *Image Magic* library (http://www.imagemagick.org/script/index.php).
+To convert the image the request should have two params: *url* and *command*, 
+where *url* is the location returned from */upload* endpoint and 
+*command* is *Image Magic* command forwarded directly to library engine (http://www.imagemagick.org/script/command-line-processing.php#option).
+
+Similarly to the */upload* endpoint, the response contains *Location* header with url of the converted image (new image is created).
 
 + Request
 
@@ -69,7 +92,18 @@ For Fine Uploader support, specify Accept: *text/vnd.fineuploader+plain* or if y
 
 ### Compress Image or Video Resource [POST]
 
-The choice of targetFormat changes the behavior of this operation. Converting to jpeg happens synchronously, and returns HTTP 201. Compressing to other video types happens asynchronously with HTTP 202. This may take a while. Poll the created resource to know when it is complete. In either case the server will provide a *Location header* to the destination resource. When converting to jpeg you can set *Prefer* header to get a copy of the screenshot returned in the same HTTP response.
+Compression endpoint is designed to compress video resources. Similarly to */conversion* endpoint, 
+it expects *url* location of a video asset, *targetFormat* which says how to compress resource 
+and *targetFileName* which can force usage of specified file name (but it is no recommended, 
+as it can conflict with existing file or hide file type from the user by changing output file extension).
+
+The choice of *targetFormat* changes the behavior of */compressions* endpoint in a following ways:
+* *jpeg* - used to create the screenshot of the video by using one frame from the video and saving it as a image file.
+This works in a synchronous way. The response is HTTP 201 with *Location* header just like for other endpoints. 
+Additionally, when converting to *jpeg* you can set *Prefer* header to get a copy of the image returned in the same HTTP response.
+* *h264* - asynchronously compress the video with H264 codec. When specified the response also contains *Location* header but HTTP code is 202. 
+Because it works synchronously, you need to poll the resource when compression is finished. Following video formats are allowed: avi|wmv|flv|mpg|mpeg|mp4|mov|m4v.
+* *ogg* - asynchronously compress the video sound track to OGG. Response is also HTTP 202 with *Location* header. Polling required.
 
 + Request
 
